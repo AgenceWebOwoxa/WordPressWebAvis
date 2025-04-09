@@ -1,5 +1,3 @@
-//Version: 1.2.8
-
 .sr-review-form, .sr-review-list, .sr-login-form, .sr-user-space {
     max-width: 600px;
     margin: 20px auto;
@@ -87,4 +85,70 @@
 
 .sr-edit-button:hover {
     background-color: #218838;
+}
+
+.sr-review-grille-list {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.sr-grille {
+    display: grid;
+    grid-template-columns: repeat(var(--sr-columns), 1fr);
+    gap: 20px;
+    margin-top: 15px;
+}
+
+/* Responsive : 1 colonne en dessous de 800px */
+@media (max-width: 800px) {
+    .sr-grille {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Responsive : 2 colonnes entre 801px et 1000px */
+@media (min-width: 801px) and (max-width: 1000px) {
+    .sr-grille {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.sr-grille-item {
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.sr-grille-item strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.sr-stars {
+    color: #f5c518;
+    margin-bottom: 10px;
+}
+
+.sr-grille-item p {
+    margin: 0;
+}
+
+.sr-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sr-edit-icon {
+    color: #28a745;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.sr-edit-icon:hover {
+    color: #218838;
 }
