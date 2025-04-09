@@ -42,6 +42,8 @@ function sr_admin_page() {
             <li><code>[simple_reviews]</code> - Affiche le formulaire pour laisser un avis.</li>
             <li><code>[simple_reviews_list]</code> - Affiche uniquement la liste des avis.</li>
             <li><code>[sr_user_space]</code> - Affiche l’espace utilisateur.</li>
+            <li><code>[simple_reviews_grille_list]</code> - Affiche les avis en grille avec 2 colonnes par défaut.</li>
+            <li><code>[simple_reviews_grille_list column=X]</code> - Affiche les avis en grille avec X colonnes (max 4, ex. 3 ou 4).</li>
         </ul>
     </div>
     <?php

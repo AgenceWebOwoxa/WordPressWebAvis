@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Reviews
 Description: Permet aux utilisateurs de laisser des avis sur le site avec gestion utilisateur.
-Version: 1.2.8
+Version: 1.3.2
 Author: Grok & Agence Internet Owoxa
 Requires at least: 6.7.2
 Requires PHP: 8.0.29
@@ -42,6 +42,12 @@ function sr_enqueue_styles() {
 }
 add_action('wp_enqueue_scripts', 'sr_enqueue_styles');
 
+// Charger Dashicons sur le front-end
+function sr_enqueue_dashicons() {
+    wp_enqueue_style('dashicons');
+}
+add_action('wp_enqueue_scripts', 'sr_enqueue_dashicons');
+
 // Créer un Custom Post Type pour les avis
 function sr_register_review_post_type() {
     register_post_type('sr_review', array(
@@ -62,7 +68,6 @@ function sr_register_review_post_type() {
 }
 add_action('init', 'sr_register_review_post_type');
 
-// Shortcode pour afficher uniquement la liste des avis avec bouton
 function sr_reviews_list_shortcode() {
     ob_start();
     ?>
@@ -74,13 +79,26 @@ function sr_reviews_list_shortcode() {
             'post_status' => 'publish',
             'posts_per_page' => 10
         ));
+        $current_user = wp_get_current_user();
+        $is_admin = in_array('administrator', $current_user->roles);
+
         if ($reviews) {
             echo '<ul>';
             foreach ($reviews as $review) {
                 $rating = get_post_meta($review->ID, 'sr_rating', true);
                 $stars = str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
+                $user_space_page = get_option('sr_user_space_page', '');
+                $is_author = is_user_logged_in() && $review->post_author == get_current_user_id();
+
                 echo '<li>';
-                echo '<strong>' . esc_html($review->post_title) . '</strong> - ' . $stars . '<br>';
+                echo '<div class="sr-review-header">';
+                echo '<strong>' . esc_html($review->post_title) . '</strong>';
+                // Ajout de l'icône crayon pour l'auteur ou l'admin
+                if ($user_space_page && ($is_author || $is_admin)) {
+                    echo '<a href="' . esc_url($user_space_page) . '" class="sr-edit-icon" title="Modifier cet avis"><span class="dashicons dashicons-edit"></span></a>';
+                }
+                echo '</div>';
+                echo '<div class="sr-stars">' . $stars . '</div>';
                 echo wp_kses_post($review->post_content);
                 echo '</li>';
             }
@@ -91,8 +109,6 @@ function sr_reviews_list_shortcode() {
 
         $form_page = get_option('sr_form_page', '');
         $user_space_page = get_option('sr_user_space_page', '');
-        $current_user = wp_get_current_user();
-        $is_admin = in_array('administrator', $current_user->roles);
 
         if (is_user_logged_in()) {
             $user_id = get_current_user_id();
@@ -100,15 +116,12 @@ function sr_reviews_list_shortcode() {
                 'post_type' => 'sr_review',
                 'author' => $user_id,
                 'posts_per_page' => 1,
-                'post_status' => array('publish', 'pending') // Inclut les avis publiés et en attente
+                'post_status' => array('publish', 'pending')
             ));
 
             echo '<div class="sr-buttons">';
             if ($form_page && !$existing_review) {
                 echo '<a href="' . esc_url($form_page) . '" class="sr-form-button">Laisser un avis</a>';
-            }
-            if ($user_space_page && ($existing_review || $is_admin)) {
-                echo '<a href="' . esc_url($user_space_page) . '" class="sr-form-button sr-edit-button">Modifier cet avis</a>';
             }
             echo '</div>';
         } elseif ($form_page) {
@@ -193,3 +206,83 @@ function sr_refuse_review() {
     }
 }
 add_action('admin_init', 'sr_refuse_review');
+
+function sr_reviews_grille_list_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'column' => 2,
+    ), $atts, 'simple_reviews_grille_list');
+
+    $columns = max(1, min(4, intval($atts['column'])));
+
+    ob_start();
+    ?>
+    <div class="sr-review-grille-list" style="--sr-columns: <?php echo esc_attr($columns); ?>;">
+        <h2>Avis des utilisateurs</h2>
+        <?php
+        $reviews = get_posts(array(
+            'post_type' => 'sr_review',
+            'post_status' => 'publish',
+            'posts_per_page' => -1
+        ));
+        $current_user = wp_get_current_user();
+        $is_admin = in_array('administrator', $current_user->roles);
+
+        if ($reviews) {
+            echo '<div class="sr-grille">';
+            foreach ($reviews as $review) {
+                $rating = get_post_meta($review->ID, 'sr_rating', true);
+                $stars = str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
+                $user_space_page = get_option('sr_user_space_page', '');
+                $is_author = is_user_logged_in() && $review->post_author == get_current_user_id();
+
+                ?>
+                <div class="sr-grille-item">
+                    <div class="sr-review-header">
+                        <strong><?php echo esc_html($review->post_title); ?></strong>
+                        <?php if ($user_space_page && ($is_author || $is_admin)) : ?>
+                            <a href="<?php echo esc_url($user_space_page); ?>" class="sr-edit-icon" title="Modifier cet avis"><span class="dashicons dashicons-edit"></span></a>
+                        <?php endif; ?>
+                    </div>
+                    <div class="sr-stars"><?php echo $stars; ?></div>
+                    <p><?php echo wp_kses_post($review->post_content); ?></p>
+                </div>
+                <?php
+            }
+            echo '</div>';
+        } else {
+            echo '<p>Aucun avis publié pour le moment.</p>';
+        }
+
+        $form_page = get_option('sr_form_page', '');
+        $user_space_page = get_option('sr_user_space_page', '');
+
+        if (is_user_logged_in()) {
+            $user_id = get_current_user_id();
+            $existing_review = get_posts(array(
+                'post_type' => 'sr_review',
+                'author' => $user_id,
+                'posts_per_page' => 1,
+                'post_status' => array('publish', 'pending')
+            ));
+
+            echo '<div class="sr-buttons">';
+            if ($form_page && !$existing_review) {
+                echo '<a href="' . esc_url($form_page) . '" class="sr-form-button">Laisser un avis</a>';
+            }
+            echo '</div>';
+        } elseif ($form_page) {
+            echo '<div class="sr-buttons">';
+            echo '<a href="' . esc_url($form_page) . '" class="sr-form-button">Laisser un avis</a>';
+            echo '</div>';
+        }
+        ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('simple_reviews_grille_list', 'sr_reviews_grille_list_shortcode');
+
+// Fonction alternative sans shortcode
+function sr_reviews_grille_list($columns = 2) {
+    return sr_reviews_grille_list_shortcode(array('column' => $columns));
+}
