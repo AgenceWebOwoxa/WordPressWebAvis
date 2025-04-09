@@ -1,0 +1,90 @@
+//Version: 1.2.8
+
+.sr-review-form, .sr-review-list, .sr-login-form, .sr-user-space {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+.sr-review-form h2, .sr-review-list h2, .sr-login-form h2, .sr-user-space h2, .sr-user-space h3 {
+    margin-top: 0;
+}
+.sr-review-form label, .sr-login-form label, .sr-user-space label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.sr-review-form select, .sr-review-form textarea, .sr-login-form input, .sr-user-space input, .sr-user-space textarea, .sr-user-space select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.sr-review-form textarea, .sr-user-space textarea {
+    resize: vertical;
+}
+.sr-review-form button, .sr-login-form button, .sr-user-space button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.sr-review-form button:hover, .sr-login-form button:hover, .sr-user-space button:hover {
+    background-color: #0056b3;
+}
+.sr-success {
+    color: #28a745;
+    font-weight: bold;
+}
+.sr-error {
+    color: #dc3545;
+    font-weight: bold;
+}
+.sr-review-list ul {
+    list-style: none;
+    padding: 0;
+}
+.sr-review-list li {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+.sr-review-list li:last-child {
+    border-bottom: none;
+}
+.sr-delete-btn {
+    background-color: #dc3545;
+}
+.sr-delete-btn:hover {
+    background-color: #c82333;
+}
+.sr-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.sr-form-button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.sr-form-button:hover {
+    background-color: #0056b3;
+}
+
+.sr-edit-button {
+    background-color: #28a745;
+}
+
+.sr-edit-button:hover {
+    background-color: #218838;
+}
