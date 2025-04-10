@@ -41,9 +41,11 @@ function sr_admin_page() {
         <ul>
             <li><code>[simple_reviews]</code> - Affiche le formulaire pour laisser un avis.</li>
             <li><code>[simple_reviews_list]</code> - Affiche uniquement la liste des avis.</li>
+            <li><code>[simple_reviews_list categorie=X]</code> - Affiche uniquement la liste des avis dans la catégorie X (remplacez X par le slug de la catégorie).</li>
             <li><code>[sr_user_space]</code> - Affiche l’espace utilisateur.</li>
             <li><code>[simple_reviews_grille_list]</code> - Affiche les avis en grille avec 2 colonnes par défaut.</li>
             <li><code>[simple_reviews_grille_list column=X]</code> - Affiche les avis en grille avec X colonnes (max 4, ex. 3 ou 4).</li>
+            <li><code>[simple_reviews_grille_list categorie=X]</code> - Affiche les avis de la catégorie X en grille (remplacez X par le slug de la catégorie).</li>
         </ul>
     </div>
     <?php
@@ -192,3 +194,58 @@ function sr_export_csv() {
     }
 }
 add_action('admin_init', 'sr_export_csv');
+
+//Catégorie
+
+// Ajouter des champs pour description et image dans les catégories (formulaire d’ajout)
+function sr_add_category_fields($taxonomy) {
+    ?>
+    <div class="form-field">
+        <label>Image d’illustration</label>
+        <input type="hidden" name="sr_category_image" id="sr_category_image" value="">
+        <p><button type="button" class="button sr-upload-image-button">Choisir une image</button></p>
+        <div class="sr-image-preview"></div>
+    </div>
+    <?php
+}
+add_action('sr_review_category_add_form_fields', 'sr_add_category_fields');
+
+// Modifier les champs existants (formulaire d’édition)
+function sr_edit_category_fields($term) {
+    $image = get_term_meta($term->term_id, 'sr_category_image', true);
+    ?>
+    <tr class="form-field">
+        <th><label>Image d’illustration</label></th>
+        <td>
+            <input type="hidden" name="sr_category_image" id="sr_category_image" value="<?php echo esc_url($image); ?>">
+            <p><button type="button" class="button sr-upload-image-button">Choisir une image</button></p>
+            <div class="sr-image-preview">
+                <?php if ($image) : ?>
+                    <img src="<?php echo esc_url($image); ?>" style="max-width: 200px; height: auto;" />
+                    <p><a href="#" class="sr-remove-image">Supprimer l’image</a></p>
+                <?php endif; ?>
+            </div>
+        </td>
+    </tr>
+    <?php
+}
+add_action('sr_review_category_edit_form_fields', 'sr_edit_category_fields');
+
+// Sauvegarder les champs (inchangé)
+function sr_save_category_fields($term_id) {
+    if (isset($_POST['sr_category_image'])) {
+        update_term_meta($term_id, 'sr_category_image', esc_url_raw($_POST['sr_category_image']));
+    }
+}
+add_action('created_sr_review_category', 'sr_save_category_fields');
+add_action('edited_sr_review_category', 'sr_save_category_fields');
+
+// Script admin corrigé avec une vérification plus stricte
+function sr_enqueue_admin_scripts($hook) {
+    // On s’assure que le script charge bien sur les pages de taxonomie
+    if (in_array($hook, array('edit-tags.php', 'term.php')) && isset($_GET['taxonomy']) && $_GET['taxonomy'] === 'sr_review_category') {
+        wp_enqueue_media(); // Charge la médiathèque WordPress
+        wp_enqueue_script('sr-admin-script', plugin_dir_url(__FILE__) . 'js/admin-script.js', array('jquery'), '1.2', true); // Version mise à jour
+    }
+}
+add_action('admin_enqueue_scripts', 'sr_enqueue_admin_scripts');

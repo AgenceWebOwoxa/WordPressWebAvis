@@ -2,7 +2,7 @@
 /*
 Plugin Name: Simple Reviews
 Description: Permet aux utilisateurs de laisser des avis sur le site avec gestion utilisateur.
-Version: 1.3.2
+Version: 1.3.4
 Author: Grok & Agence Internet Owoxa
 Requires at least: 6.7.2
 Requires PHP: 8.0.29
@@ -68,17 +68,31 @@ function sr_register_review_post_type() {
 }
 add_action('init', 'sr_register_review_post_type');
 
-function sr_reviews_list_shortcode() {
+function sr_reviews_list_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'categorie' => '', // Ajout de l’attribut categorie
+    ), $atts, 'simple_reviews_list');
+
     ob_start();
     ?>
     <div class="sr-review-list">
-        <h2>Avis des utilisateurs</h2>
+        <h2>Avis des utilisateurs<?php echo $atts['categorie'] ? ' - ' . esc_html(get_term_by('slug', $atts['categorie'], 'sr_review_category')->name) : ''; ?></h2>
         <?php
-        $reviews = get_posts(array(
+        $args = array(
             'post_type' => 'sr_review',
             'post_status' => 'publish',
-            'posts_per_page' => 10
-        ));
+            'posts_per_page' => 10,
+        );
+        if ($atts['categorie']) {
+            $args['tax_query'] = array(
+                array(
+                    'taxonomy' => 'sr_review_category',
+                    'field' => 'slug',
+                    'terms' => $atts['categorie'],
+                ),
+            );
+        }
+        $reviews = get_posts($args);
         $current_user = wp_get_current_user();
         $is_admin = in_array('administrator', $current_user->roles);
 
@@ -93,7 +107,6 @@ function sr_reviews_list_shortcode() {
                 echo '<li>';
                 echo '<div class="sr-review-header">';
                 echo '<strong>' . esc_html($review->post_title) . '</strong>';
-                // Ajout de l'icône crayon pour l'auteur ou l'admin
                 if ($user_space_page && ($is_author || $is_admin)) {
                     echo '<a href="' . esc_url($user_space_page) . '" class="sr-edit-icon" title="Modifier cet avis"><span class="dashicons dashicons-edit"></span></a>';
                 }
@@ -104,7 +117,7 @@ function sr_reviews_list_shortcode() {
             }
             echo '</ul>';
         } else {
-            echo '<p>Aucun avis publié pour le moment.</p>';
+            echo '<p>Aucun avis publié pour le moment dans cette catégorie.</p>';
         }
 
         $form_page = get_option('sr_form_page', '');
@@ -210,6 +223,7 @@ add_action('admin_init', 'sr_refuse_review');
 function sr_reviews_grille_list_shortcode($atts) {
     $atts = shortcode_atts(array(
         'column' => 2,
+        'categorie' => '', // Ajout de l’attribut categorie
     ), $atts, 'simple_reviews_grille_list');
 
     $columns = max(1, min(4, intval($atts['column'])));
@@ -217,13 +231,23 @@ function sr_reviews_grille_list_shortcode($atts) {
     ob_start();
     ?>
     <div class="sr-review-grille-list" style="--sr-columns: <?php echo esc_attr($columns); ?>;">
-        <h2>Avis des utilisateurs</h2>
+        <h2>Avis des utilisateurs<?php echo $atts['categorie'] ? ' - ' . esc_html(get_term_by('slug', $atts['categorie'], 'sr_review_category')->name) : ''; ?></h2>
         <?php
-        $reviews = get_posts(array(
+        $args = array(
             'post_type' => 'sr_review',
             'post_status' => 'publish',
-            'posts_per_page' => -1
-        ));
+            'posts_per_page' => -1,
+        );
+        if ($atts['categorie']) {
+            $args['tax_query'] = array(
+                array(
+                    'taxonomy' => 'sr_review_category',
+                    'field' => 'slug',
+                    'terms' => $atts['categorie'],
+                ),
+            );
+        }
+        $reviews = get_posts($args);
         $current_user = wp_get_current_user();
         $is_admin = in_array('administrator', $current_user->roles);
 
@@ -250,7 +274,7 @@ function sr_reviews_grille_list_shortcode($atts) {
             }
             echo '</div>';
         } else {
-            echo '<p>Aucun avis publié pour le moment.</p>';
+            echo '<p>Aucun avis publié pour le moment dans cette catégorie.</p>';
         }
 
         $form_page = get_option('sr_form_page', '');
@@ -286,3 +310,50 @@ add_shortcode('simple_reviews_grille_list', 'sr_reviews_grille_list_shortcode');
 function sr_reviews_grille_list($columns = 2) {
     return sr_reviews_grille_list_shortcode(array('column' => $columns));
 }
+
+// Créer une taxonomie pour les catégories d'avis
+function sr_register_review_categories() {
+    register_taxonomy('sr_review_category', 'sr_review', array(
+        'labels' => array(
+            'name' => 'Catégories d’avis',
+            'singular_name' => 'Catégorie d’avis',
+            'menu_name' => 'Catégories',
+            'all_items' => 'Toutes les catégories',
+            'edit_item' => 'Modifier la catégorie',
+            'view_item' => 'Voir la catégorie',
+            'update_item' => 'Mettre à jour la catégorie',
+            'add_new_item' => 'Ajouter une nouvelle catégorie',
+            'new_item_name' => 'Nom de la nouvelle catégorie',
+            'search_items' => 'Rechercher des catégories',
+        ),
+        'public' => true,
+        'hierarchical' => true, // Comme des catégories, pas des étiquettes
+        'show_ui' => true,
+        'show_in_menu' => 'edit.php?post_type=sr_review', // Sous-menu dans "Avis"
+        'show_admin_column' => true, // Affiche la colonne dans la liste des avis
+        'rewrite' => array('slug' => 'review-category'),
+    ));
+}
+add_action('init', 'sr_register_review_categories');
+
+// Dans la fonction sr_enqueue_styles ou une nouvelle fonction
+function sr_enqueue_admin_assets() {
+    if (is_admin()) {
+        wp_enqueue_script('sr-admin-script', plugin_dir_url(__FILE__) . 'js/admin-script.js', array('jquery'), '1.0', true);
+    }
+}
+add_action('admin_enqueue_scripts', 'sr_enqueue_admin_assets');
+
+//Ajouter une taxonomie pour les catégories d’avis
+function sr_register_review_category() {
+    register_taxonomy('sr_review_category', 'sr_review', array(
+        'labels' => array(
+            'name' => 'Catégories d’avis',
+            'singular_name' => 'Catégorie d’avis',
+        ),
+        'public' => true,
+        'hierarchical' => true,
+        'show_admin_column' => true,
+    ));
+}
+add_action('init', 'sr_register_review_category');
